@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>BlockGas</title>
+    <style>
+        body{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            background-color: #f5f5f5;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 500px;
+            margin-bottom: 15px;
+        }
+
+        .container h1 {
+            text-align: center;
+            margin: 0 0 20px 0;
+            color: #333;
+            font-size: 1.5em;
+        }
+
+        .content {
+            display: flex;
+            gap: 20px;
+        }
+
+        .inputs-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .buttons-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        input[type="text"], input[type="password"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: #4CAF50;
+        }
+
+        button {
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:active {
+            background-color: #3d8b40;
+        }
+
+        #connectBtn {
+            background-color: #008CBA;
+        }
+
+        #connectBtn:hover {
+            background-color: #007B9A;
+        }
+
+        #reset {
+            background-color: #f44336;
+        }
+
+        #reset:hover {
+            background-color: #da190b;
+        }
+
+        .info-text {
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        #log{
+            background-color: #000;
+            color: #fff;
+            padding: 10px;
+            height: 30vh;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre;
+            box-shadow: 0 0 0 1px #fff inset;
+            border: #000 solid 2px;
+            border-radius: 4px;
+            width: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Comunicação Serial com ESP32</h1>
+        <div class="content">
+            <div class="inputs-section">
+                <input type="text" id="sendSSID" placeholder="Nome da rede de Wi-Fi" />
+                <input type="password" id="sendPassword" placeholder="Senha da rede de Wi-Fi" />
+                <input type="text" id="sendId" placeholder="Número do ID do seu usuário do Telegram" />
+            </div>
+            <div class="buttons-section">
+                <button id="connectBtn">Conectar</button>
+                <button id="sendBtn">Enviar configurações</button>
+                <button id="reset">Resetar o dispositivo</button>
+            </div>
+        </div>
+        <p class="info-text">
+            Para obter o seu número de Id, pesquise no Telegram pelo bot <b>@userinfobot</b> e clique em start.
+        </p>
+    </div>
+
+    <pre id="log"></pre>
+
+    <script>
+        let port;
+        let writer;
+
+        async function connectSerial() {
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+
+                const decoder = new TextDecoderStream();
+                port.readable.pipeTo(decoder.writable);
+                const reader = decoder.readable.getReader();
+
+                const encoder = new TextEncoderStream();
+                encoder.readable.pipeTo(port.writable);
+                writer = encoder.writable.getWriter();
+
+                logMessage("Conectado ao ESP32!");
+
+                let buffer = "";
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) {
+                        if (buffer.length > 0) logMessage(buffer);
+                        break;
+                    }
+                    if (value) {
+                        // Remove \r e processa o texto caractere a caractere
+                        const text = value.replace(/\r/g, '');
+                        for (const ch of text) {
+                            if (ch === '.') {
+                                // Mostra ponto imediatamente sem quebrar linha
+                                appendToLastLine('.');
+                            } else if (ch === '\n') {
+                                // Quando chega \n, exibe a linha completa
+                                if (buffer.length > 0) {
+                                    logMessage(buffer);
+                                    buffer = "";
+                                } else {
+                                    logMessage(''); // linha vazia
+                                }
+                            } else {
+                                buffer += ch;
+                            }
+                        }
+                    }
+                }
+
+            } catch (err) {
+                if (err.name === "NotFoundError" || err.message.includes("user cancelled")) {return}
+                logMessage("Erro: " + err.message);
+                console.error(err);
+            }
+        }
+
+        function appendToLastLine(text) {
+            const log = document.getElementById("log");
+            const lines = log.textContent.split('\n');
+            // Se não tiver linhas, cria uma
+            if (lines.length === 0) {
+                log.textContent = text;
+            } else {
+                // acrescenta ao fim da última linha
+                lines[lines.length - 1] += text;
+                log.textContent = lines.join('\n');
+            }
+            // scroll para baixo
+            log.scrollTop = log.scrollHeight;
+        }
+
+
+        function logMessage(text) {
+            const log = document.getElementById("log");
+            log.textContent += text + "\n";
+            // Limita a 500 linhas para não ficar pesado
+            const lines = log.textContent.split("\n");
+            if (lines.length > 500) {
+                log.textContent = lines.slice(lines.length - 500).join("\n");
+            }
+            log.scrollTop = log.scrollHeight;
+        }
+
+        document.getElementById('connectBtn').addEventListener('click', () => {
+            connectSerial();
+        });
+
+        document.getElementById('sendBtn').addEventListener('click', async () => {
+            const ssid = document.getElementById("sendSSID").value.trim();
+            const senha = document.getElementById("sendPassword").value.trim();
+            const id = document.getElementById("sendId").value.trim();
+
+            if (!ssid || !senha || !id) {
+                alert("Preencha todos os campos para enviar as configurações!");
+                return;
+            }
+            if (!writer) {
+                alert("Conecte-se primeiro ao dispositivo!");
+                return;
+            }
+            const comando = `0;${ssid};${senha};${id}\n`;
+            await writer.write(comando);
+            logMessage("Enviado: " + comando.trim());
+        });
+
+        document.getElementById('reset').addEventListener('click', async () => {
+            if (!writer) {
+                alert("Conecte-se primeiro ao dispositivo!");
+                return;
+            }
+            const comando = "1\n";
+            await writer.write(comando);
+            logMessage("Enviado comando reset");
+        });
+    </script>
+</body>
+</html>
