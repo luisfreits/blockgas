@@ -10,10 +10,11 @@
             align-items: center;
             margin: 20px;
             font-family: Arial, sans-serif;
+            background-color: #ffe9cd;
         }
 
         .container {
-            background-color: #f5f5f5;
+            background-color: #fffaf4;
             border: 2px solid #ddd;
             border-radius: 8px;
             padding: 20px;
@@ -48,7 +49,7 @@
             gap: 10px;
         }
 
-        input[type="text"], input[type="password"] {
+        input{
             padding: 10px;
             border: 2px solid #ddd;
             border-radius: 4px;
@@ -57,13 +58,13 @@
             transition: border-color 0.3s;
         }
 
-        input[type="text"]:focus, input[type="password"]:focus {
-            border-color: #4CAF50;
+        input:focus {
+            border-color: #ffb357;
         }
 
         button {
             padding: 12px;
-            background-color: #4CAF50;
+            background-color: #ffc174;
             color: white;
             border: none;
             border-radius: 4px;
@@ -72,31 +73,12 @@
             font-weight: bold;
             transition: background-color 0.3s;
         }
-
-        button:hover {
-            background-color: #45a049;
+        button:hover{
+            background-color: #ffb357;
         }
-
-        button:active {
-            background-color: #3d8b40;
+        button:active{
+            background-color: #df9337;
         }
-
-        #connectBtn {
-            background-color: #008CBA;
-        }
-
-        #connectBtn:hover {
-            background-color: #007B9A;
-        }
-
-        #reset {
-            background-color: #f44336;
-        }
-
-        #reset:hover {
-            background-color: #da190b;
-        }
-
         .info-text {
             font-size: 0.9em;
             color: #666;
@@ -121,15 +103,15 @@
 </head>
 <body>
     <div class="container">
-        <h1>Comunicação Serial com ESP32</h1>
+        <h1>Configuração do dispositivo BlockGas</h1>
         <div class="content">
             <div class="inputs-section">
                 <input type="text" id="sendSSID" placeholder="Nome da rede de Wi-Fi" />
                 <input type="password" id="sendPassword" placeholder="Senha da rede de Wi-Fi" />
-                <input type="text" id="sendId" placeholder="Número do ID do seu usuário do Telegram" />
+                <input type="text" id="sendId" placeholder="UserId do Telegram" />
             </div>
             <div class="buttons-section">
-                <button id="connectBtn">Conectar</button>
+                <button id="connectBtn">Conectar dispositivo</button>
                 <button id="sendBtn">Enviar configurações</button>
                 <button id="reset">Resetar o dispositivo</button>
             </div>
@@ -258,3 +240,4 @@
     </script>
 </body>
 </html>
+
